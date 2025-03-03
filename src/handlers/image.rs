@@ -3,7 +3,6 @@ use crate::config::Config;
 use url::Url;
 use std::collections::HashMap;
 use awc::Client;
-use openssl::symm::{ encrypt, Cipher };
 use openssl::sign::Signer;
 use openssl::pkey::PKey;
 use openssl::hash::MessageDigest;
@@ -33,9 +32,8 @@ pub async fn image(
 
     let (width, height, quality) = get_transformation_params(&query);
 
-    let preset = "pr:sharp";
     let processing_path = format!("/resize:fill:{}:{}/q:{}/plain/{}", width, height, quality, src);
-    let final_url = compute_final_url(&src, &width, &quality, &processing_path, &config);
+    let final_url = compute_final_url(&processing_path, &config);
 
     let client = Client::default();
     let response = client
@@ -103,66 +101,14 @@ fn get_transformation_params(query: &HashMap<String, String>) -> (String, String
 
 // =========================================================================================
 
-fn compute_final_url(
-    src: &str,
-    width: &str,
-    quality: &str,
-    processing_path: &str,
-    config: &Config
-) -> String {
+fn compute_final_url(processing_path: &str, config: &Config) -> String {
     let base_url = &config.imgproxy_url;
-    if
-        let (Some(enc_key), Some(iv_key)) = (
-            &config.imgproxy_source_url_encryption_key,
-            &config.imgproxy_iv_key,
-        )
-    {
-        if let Ok(encrypted) = encrypt_source_url(src, enc_key, iv_key) {
-            return format!(
-                "{}/unsafe/enc/{}?width={}&quality={}",
-                base_url,
-                encrypted,
-                width,
-                quality
-            );
-        }
-    }
     if let (Some(sign_key), Some(sign_salt)) = (&config.imgproxy_key, &config.imgproxy_salt) {
         if let Ok(signature) = sign_url(processing_path, sign_key, sign_salt) {
             return format!("{}/{}/{}", base_url, signature, processing_path);
         }
     }
     format!("{}{}", base_url, processing_path)
-}
-
-// =========================================================================================
-
-fn encrypt_source_url(
-    src: &str,
-    key_hex: &str,
-    iv_key: &str
-) -> Result<String, Box<dyn std::error::Error>> {
-    let key = hex::decode(key_hex)?;
-
-    let pkey = PKey::hmac(iv_key.as_bytes())?;
-    let mut signer = Signer::new(MessageDigest::sha256(), &pkey)?;
-    signer.update(src.as_bytes())?;
-    let hmac = signer.sign_to_vec()?;
-    let iv = &hmac[..16];
-
-    let cipher = match key.len() {
-        16 => Cipher::aes_128_cbc(),
-        24 => Cipher::aes_192_cbc(),
-        32 => Cipher::aes_256_cbc(),
-        _ => {
-            return Err("Invalid key length".into());
-        }
-    };
-
-    let ciphertext = encrypt(cipher, &key, Some(iv), src.as_bytes())?;
-    let mut combined = iv.to_vec();
-    combined.extend(ciphertext);
-    Ok(general_purpose::URL_SAFE_NO_PAD.encode(&combined))
 }
 
 // =========================================================================================
@@ -182,20 +128,6 @@ fn sign_url(
     signer.update(&data)?;
     let signature = signer.sign_to_vec()?;
     Ok(general_purpose::URL_SAFE_NO_PAD.encode(&signature))
-}
-
-// =========================================================================================
-
-#[get("/test")]
-pub async fn test() -> impl Responder {
-    let src =
-        "https://cloud.api.bryancellier.fr/4cite-akkorhotel/hotels/67c497f6fe56161ca9eae8c3/67c497f6291a940e35d4f6b4";
-    let key = "314151d85d73af460cc5395188f75c2b6bc52257f52be97be04e7f5694a6a977";
-    let iv_key = "cdaddffe20279d72219fb7c2ae62d908";
-    match encrypt_source_url(src, key, iv_key) {
-        Ok(encrypted) => HttpResponse::Ok().body(format!("Encrypted: {}", encrypted)),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Error: {}", e)),
-    }
 }
 
 // =========================================================================================

@@ -4,14 +4,11 @@ use std::env;
 // =========================================================================================
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct Config {
     pub imgproxy_url: String,
     pub allowed_domains: Vec<String>,
     pub imgproxy_key: Option<String>,
     pub imgproxy_salt: Option<String>,
-    pub imgproxy_source_url_encryption_key: Option<String>,
-    pub imgproxy_iv_key: Option<String>,
 }
 
 // =========================================================================================
@@ -33,18 +30,12 @@ impl Config {
 
         let imgproxy_key = env::var("IMGPROXY_KEY").ok();
         let imgproxy_salt = env::var("IMGPROXY_SALT").ok();
-        let imgproxy_source_url_encryption_key = env
-            ::var("IMGPROXY_SOURCE_URL_ENCRYPTION_KEY")
-            .ok();
-        let imgproxy_iv_key = env::var("IMGPROXY_IV_KEY").ok();
 
         Config {
             imgproxy_url,
             allowed_domains,
             imgproxy_key,
             imgproxy_salt,
-            imgproxy_source_url_encryption_key,
-            imgproxy_iv_key,
         }
     }
 }
