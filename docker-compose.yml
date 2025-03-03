@@ -1,0 +1,39 @@
+services:
+  imoost:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: imoost
+    ports:
+      - "8080:8080"
+    environment:
+      - IMGPROXY_URL=${IMGPROXY_URL}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS}
+      - IMGPROXY_KEY=${IMGPROXY_KEY}
+      - IMGPROXY_SALT=${IMGPROXY_SALT}
+      - IMGPROXY_SOURCE_URL_ENCRYPTION_KEY=${IMGPROXY_SOURCE_URL_ENCRYPTION_KEY}
+      - IMGPROXY_IV_KEY=${IMGPROXY_IV_KEY}
+    depends_on:
+      imgproxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    container_name: imgproxy
+    environment:
+      - IMGPROXY_AUTO_WEBP=${IMGPROXY_AUTO_WEBP}
+      - IMGPROXY_AUTO_AVIF=${IMGPROXY_AUTO_AVIF}
+      - IMGPROXY_JPEG_PROGRESSIVE=${IMGPROXY_JPEG_PROGRESSIVE}
+      - IMGPROXY_USE_ETAG=${IMGPROXY_USE_ETAG}
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "8081:8080"

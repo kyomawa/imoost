@@ -9,12 +9,12 @@ use config::Config;
 async fn main() -> std::io::Result<()> {
     let config = Config::from_env();
 
-    println!("▶️ Starting server at http://127.0.0.1:8080");
+    println!("▶️  Starting server at http://0.0.0.0:8080");
     println!("🔗 Using imgproxy URL: {}", config.imgproxy_url);
 
     HttpServer::new(move || {
         App::new().configure(routes::init_routes).app_data(web::Data::new(config.clone()))
     })
-        .bind(("127.0.0.1", 8080))?
+        .bind(("0.0.0.0", 8080))?
         .run().await
 }
