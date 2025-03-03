@@ -61,7 +61,7 @@ To install Imoost with Coolify, follow these steps:
             - CMD
             - curl
             - '-f'
-            - '<http://localhost:8000/health>'
+            - 'http://localhost:8000/health'
           interval: 2s
           timeout: 10s
           retries: 5
@@ -141,7 +141,7 @@ services:
       imgproxy:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "<http://localhost:8000/health>"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 2s
       timeout: 10s
       retries: 5
