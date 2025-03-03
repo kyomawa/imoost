@@ -1,6 +1,6 @@
 # Imoost
 
-Imoost is an open-source, self-hosted image optimization service built for Next.js. It leverages [imgproxy](https://github.com/imgproxy/imgproxy) to dynamically transform, resize, and compress your images for faster load times and better performance—all while giving you full control over your image infrastructure. ✨
+Imoost is an open-source, self-hosted image optimization service built for Next.js in Rust. It leverages [imgproxy](https://github.com/imgproxy/imgproxy) to dynamically transform, resize, and compress your images for faster load times and better performance—all while giving you full control over your image infrastructure. ✨
 
 ---
 
@@ -21,7 +21,8 @@ Imoost is an open-source, self-hosted image optimization service built for Next.
    1.1 [Installation](#installation)  
    1.2 [Configuration](#configuration)  
 2. [Usage](#usage)  
-   2.1 [Running with Docker](#running-with-docker)  
+   2.1 [Running with Docker (Coolify)](#running-with-docker-coolify)  
+   2.2 [Running with Docker Compose (Standalone)](#running-with-docker-compose-standalone)  
 3. [Next.js Integration](#nextjs-integration)  
    3.1 [Creating a Custom Loader](#creating-a-custom-loader)  
    3.2 [Updating `next.config.js`](#updating-nextconfigjs)  
@@ -43,66 +44,138 @@ To install Imoost with Coolify, follow these steps:
     ```yaml
     services:
       imoost:
-        image: ghcr.io/kyomawa/imoost/imoost-imoost:latest
+        image: 'ghcr.io/kyomawa/imoost/imoost-imoost:latest'
         container_name: imoost
         ports:
-          - "8000:8000"
+          - '8001:8000'
         environment:
-          - IMGPROXY_URL=${IMGPROXY_URL}
-          - ALLOWED_DOMAINS=${ALLOWED_DOMAINS}
-          - IMGPROXY_KEY=${IMGPROXY_KEY}
-          - IMGPROXY_SALT=${IMGPROXY_SALT}
+          - 'IMGPROXY_URL=${IMGPROXY_URL}'
+          - 'ALLOWED_DOMAINS=${ALLOWED_DOMAINS}'
+          - 'IMGPROXY_KEY=${IMGPROXY_KEY}'
+          - 'IMGPROXY_SALT=${IMGPROXY_SALT}'
         depends_on:
           imgproxy:
             condition: service_healthy
         healthcheck:
-          test: ["CMD", "curl", "-f", "<http://localhost:8000/health>"]
+          test:
+            - CMD
+            - curl
+            - '-f'
+            - '<http://localhost:8000/health>'
           interval: 2s
           timeout: 10s
           retries: 5
+        networks:
+          - coolify
     
       imgproxy:
-        image: darthsim/imgproxy:latest
+        image: 'darthsim/imgproxy:latest'
         container_name: imgproxy
         environment:
-          - IMGPROXY_AUTO_WEBP=${IMGPROXY_AUTO_WEBP}
-          - IMGPROXY_AUTO_AVIF=${IMGPROXY_AUTO_AVIF}
-          - IMGPROXY_JPEG_PROGRESSIVE=${IMGPROXY_JPEG_PROGRESSIVE}
-          - IMGPROXY_USE_ETAG=${IMGPROXY_USE_ETAG}
-          - IMGPROXY_KEY=${IMGPROXY_KEY}
-          - IMGPROXY_SALT=${IMGPROXY_SALT}
-          - ALLOWED_DOMAINS=${ALLOWED_DOMAINS}
+          - 'IMGPROXY_AUTO_WEBP=${IMGPROXY_AUTO_WEBP}'
+          - 'IMGPROXY_AUTO_AVIF=${IMGPROXY_AUTO_AVIF}'
+          - 'IMGPROXY_JPEG_PROGRESSIVE=${IMGPROXY_JPEG_PROGRESSIVE}'
+          - 'IMGPROXY_USE_ETAG=${IMGPROXY_USE_ETAG}'
+          - 'IMGPROXY_KEY=${IMGPROXY_KEY}'
+          - 'IMGPROXY_SALT=${IMGPROXY_SALT}'
+          - 'ALLOWED_DOMAINS=${ALLOWED_DOMAINS}'
         healthcheck:
-          test: ["CMD", "imgproxy", "health"]
+          test:
+            - CMD
+            - imgproxy
+            - health
           interval: 2s
           timeout: 10s
           retries: 5
         ports:
-          - "8080:8080"
+          - '8081:8080'
+        networks:
+          - coolify
+    
+    networks:
+      coolify:
+        external: true
     
     ```
+    
+4. **Deploy your resource.**
+    
+    After validating the configuration, two new services will appear in Coolify: **imoost** and **imgproxy**.
+    
+    ⚠️ **Important:**
+    
+    Go to the settings of the **imoost** service in Coolify and set the domain name for your service (for example, `https://image.mydomain.com`). This ensures that Imoost uses the correct domain for URL generation and integration.
+    
 
 ---
 
 ## Configuration
 
-Imoost relies on environment variables to configure how it communicates with imgproxy and how it signs URLs (if needed). Check out the section below to learn more about each variable.
+Imoost relies on environment variables to configure how it communicates with imgproxy and how it signs URLs (if needed). You must configure these variables in your deployment settings. Refer to the [Environment Variables](https://www.notion.so/1ab599302505803da3a3ec4f48a30ff3?pvs=21) section below for details.
 
 ---
 
 ## Usage
 
-### Running with Docker
+### Running with Docker (Coolify)
 
-If you prefer to run Imoost locally using Docker Compose, you can use the configuration provided above. Simply execute:
+If you are deploying via Coolify using the Docker Compose configuration provided above, Coolify will handle the networking and service management for you. Once deployed, ensure that you set the proper domain name for the imoost service in its settings (e.g., `https://image.mydomain.com`).
+
+### Running with Docker Compose (Standalone)
+
+If you prefer to run Imoost locally or without Coolify, use the following Docker Compose configuration without the external network settings:
+
+```yaml
+services:
+  imoost:
+    image: 'ghcr.io/kyomawa/imoost/imoost-imoost:latest'
+    container_name: imoost
+    ports:
+      - "8000:8000"
+    environment:
+      - IMGPROXY_URL=${IMGPROXY_URL}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS}
+      - IMGPROXY_KEY=${IMGPROXY_KEY}
+      - IMGPROXY_SALT=${IMGPROXY_SALT}
+    depends_on:
+      imgproxy:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "<http://localhost:8000/health>"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+
+  imgproxy:
+    image: darthsim/imgproxy:latest
+    container_name: imgproxy
+    environment:
+      - IMGPROXY_AUTO_WEBP=${IMGPROXY_AUTO_WEBP}
+      - IMGPROXY_AUTO_AVIF=${IMGPROXY_AUTO_AVIF}
+      - IMGPROXY_JPEG_PROGRESSIVE=${IMGPROXY_JPEG_PROGRESSIVE}
+      - IMGPROXY_USE_ETAG=${IMGPROXY_USE_ETAG}
+      - IMGPROXY_KEY=${IMGPROXY_KEY}
+      - IMGPROXY_SALT=${IMGPROXY_SALT}
+      - ALLOWED_DOMAINS=${ALLOWED_DOMAINS}
+    healthcheck:
+      test: ["CMD", "imgproxy", "health"]
+      interval: 2s
+      timeout: 10s
+      retries: 5
+    ports:
+      - "8081:8080"
+
+```
+
+Simply run:
 
 ```docker
 docker-compose up --build
 ```
 
-- **Imoost** should be available at: [http://localhost:8000](http://localhost:8000/)
+- **Imoost** will be available at: [http://localhost:8000](http://localhost:8000/)
 - **Health check endpoint:** http://localhost:8000/health
-- **imgproxy** should be available at: [http://localhost:8080](http://localhost:8080/)
+- **imgproxy** will be available at: [http://localhost:8080](http://localhost:8080/)
 
 ---
 
@@ -114,55 +187,57 @@ Imoost is designed to replace the default Next.js Image Optimization API. Instea
 
 1. In your Next.js project, **create a file** named `imagesLoader.ts` at the root (or another convenient location):
     
-  ```tsx
-  "use client";
-
-  // =======================================================================================================
-
-  import { ImageProps } from "next/image";
-
-  // =======================================================================================================
-
-  export type imageLoaderProps = {
-    src: string;
-    width: ImageProps["width"];
-    quality: ImageProps["quality"];
-  };
-
-  // =======================================================================================================
-
-  export default function imageLoader({ src, width, quality }: imageLoaderProps) {
-    const imageIsLocal = !src.startsWith("http");
-
-    const query = new URLSearchParams();
-    if (width) {
-      query.set("width", width.toString());
-    }
-    if (quality) {
-      query.set("quality", quality.toString());
-    }
-
-    // imageOptimizationApi: 'https://myimage.optimization-service.com'
-    const imageOptimizationApi = "<image-optimization-domain>"; 
+    ```tsx
+    "use client";
     
-    // baseUrl: 'https://mynextjsapp.com'
-    const baseUrl = "<your-nextjs-app-domain>"; 
+    // =======================================================================================================
     
-    const fullSrc = ${baseUrl}${src};
-
-    if (imageIsLocal && process.env.NODE_ENV === "development") {
-      return src;
+    import { ImageProps } from "next/image";
+    
+    // =======================================================================================================
+    
+    export type imageLoaderProps = {
+      src: string;
+      width: ImageProps["width"];
+      quality: ImageProps["quality"];
+    };
+    
+    // =======================================================================================================
+    
+    export default function imageLoader({ src, width, quality }: imageLoaderProps) {
+      const imageIsLocal = !src.startsWith("http");
+    
+      const query = new URLSearchParams();
+      if (width) {
+        query.set("width", width.toString());
+      }
+      if (quality) {
+        query.set("quality", quality.toString());
+      }
+    
+      // Replace <image-optimization-domain> with your Imoost domain (e.g., 'https://image.mydomain.com')
+      const imageOptimizationApi = "<image-optimization-domain>";
+    
+      // Replace <your-nextjs-app-domain> with your Next.js app domain (e.g., 'https://mynextjsapp.com')
+      const baseUrl = "<your-nextjs-app-domain>";
+    
+      // Build the full source for local images
+      const fullSrc = `${baseUrl}${src}`;
+    
+      if (imageIsLocal && process.env.NODE_ENV === "development") {
+        return src;
+      }
+    
+      if (imageIsLocal) {
+        return `${imageOptimizationApi}/image/${fullSrc}?${query.toString()}`;
+      }
+    
+      return `${imageOptimizationApi}/image/${src}?${query.toString()}`;
     }
-
-    if (imageIsLocal) {
-      return ${imageOptimizationApi}/image/${fullSrc}?${query.toString()};
-    }
-
-    return ${imageOptimizationApi}/image/${src}?${query.toString()};
-  }
-
-  // =======================================================================================================
-  ```
+    
+    // =======================================================================================================
+    
+    ```
     
 
 ### Updating `next.config.js`
