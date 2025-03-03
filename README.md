@@ -6,7 +6,6 @@ Imoost is an open-source, self-hosted image optimization service built for Next.
 
 ## Features
 
-- 🔒 **Encryption of source URLs** (optional)
 - 🔐 **Signing of URLs** (optional)
 - 🔗 **Support for multiple domains**
 - 🐳 **Docker support**
