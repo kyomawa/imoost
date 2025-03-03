@@ -5,6 +5,8 @@ mod routes;
 use actix_web::{ HttpServer, App, web };
 use config::Config;
 
+// =========================================================================================
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let config = Config::from_env();
@@ -18,3 +20,5 @@ async fn main() -> std::io::Result<()> {
         .bind(("0.0.0.0", 8080))?
         .run().await
 }
+
+// =========================================================================================

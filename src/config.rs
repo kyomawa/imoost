@@ -1,6 +1,8 @@
 use dotenv::dotenv;
 use std::env;
 
+// =========================================================================================
+
 #[derive(Clone)]
 #[allow(dead_code)]
 pub struct Config {
@@ -11,6 +13,8 @@ pub struct Config {
     pub imgproxy_source_url_encryption_key: Option<String>,
     pub imgproxy_iv_key: Option<String>,
 }
+
+// =========================================================================================
 
 impl Config {
     pub fn from_env() -> Self {
@@ -44,3 +48,5 @@ impl Config {
         }
     }
 }
+
+// =========================================================================================
